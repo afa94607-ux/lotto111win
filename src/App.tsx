@@ -1093,7 +1093,7 @@ export default function App() {
   // Delete individual bet slip from Bet Slips History
   const handleDeleteSlipFromHistory = async (slipId: string) => {
     setBetSlips((prev) => {
-      const updatedSlips = prev.filter((s) => s.id !== slipId);
+      const updatedSlips = prev.map((s) => (s.id === slipId ? { ...s, deletedFromHistory: true } : s));
       try {
         localStorage.setItem('yuki_bet_history', JSON.stringify(updatedSlips));
         
@@ -1108,11 +1108,11 @@ export default function App() {
     });
 
     try {
-        await fetch(`/api/bets/${slipId}`, {
-          method: 'DELETE',
+        await fetch(`/api/bets/${slipId}/delete`, {
+          method: 'POST',
         });
     } catch (err) {
-        console.error('Failed to delete bet slip', err);
+        console.error('Failed to mark bet slip as deleted', err);
     }
   };
 
@@ -1125,6 +1125,11 @@ export default function App() {
       );
       try {
         localStorage.setItem('yuki_bet_history', JSON.stringify(updatedSlips));
+        
+        // Add tombstones for all slips in this ticket
+        const deletedIds = JSON.parse(localStorage.getItem('yuki_deleted_bet_slips') || '[]');
+        updatedSlips.filter(s => s.ticketNumber === ticketNumber && !deletedIds.includes(s.id)).forEach(s => deletedIds.push(s.id));
+        localStorage.setItem('yuki_deleted_bet_slips', JSON.stringify(deletedIds));
       } catch {}
       return updatedSlips;
     });
@@ -1145,6 +1150,11 @@ export default function App() {
       updatedSlips = prev.map((s) => ({ ...s, deletedFromHistory: true }));
       try {
         localStorage.setItem('yuki_bet_history', JSON.stringify(updatedSlips));
+        
+        // Add tombstones for all slips
+        const deletedIds = JSON.parse(localStorage.getItem('yuki_deleted_bet_slips') || '[]');
+        updatedSlips.filter(s => !deletedIds.includes(s.id)).forEach(s => deletedIds.push(s.id));
+        localStorage.setItem('yuki_deleted_bet_slips', JSON.stringify(deletedIds));
       } catch {}
       return updatedSlips;
     });

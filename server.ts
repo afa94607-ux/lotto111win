@@ -838,21 +838,22 @@ app.delete('/api/bets', (_req, res) => {
   }
 });
 
-// API 0f-3. DELETE /api/bets/:id (Delete specific bet slip by ID)
-app.delete('/api/bets/:id', (req, res) => {
+// API 0f-3. POST /api/bets/:id/delete (Soft-delete specific bet slip by ID)
+app.post('/api/bets/:id/delete', (req, res) => {
   try {
     const { id } = req.params;
-    const initialLength = serverHistoryBets.length;
-    serverHistoryBets = serverHistoryBets.filter(b => b.id !== id);
+    const bet = serverHistoryBets.find(b => b.id === id);
     
-    if (serverHistoryBets.length === initialLength) {
+    if (!bet) {
       return res.status(404).json({ error: 'Bet slip not found' });
     }
     
+    bet.deletedFromHistory = true;
     saveBetsToFile();
+    
     return res.json({
       success: true,
-      message: `Bet slip ${id} deleted successfully.`,
+      message: `Bet slip ${id} marked as deleted.`,
       ownerSummary: computeOwnerSummary(serverHistoryBets),
     });
   } catch (err: any) {
